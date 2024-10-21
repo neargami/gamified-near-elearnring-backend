@@ -1,62 +1,77 @@
-import { CreateCourseDto, UpdateCourseDto } from '@/dtos/courses.dto';
-import { Course } from '@/interfaces/course.interfact';
-import { CourseService } from '@/services/course.service';
-import { NextFunction, Request, Response } from 'express';
-import { Container } from 'typedi';
+import { Request, Response, NextFunction } from 'express';
+import Container, { Service } from 'typedi';
+import { CourseService } from '../services/course.service';
+import { CreateCourseDto, UpdateCourseDto } from '../dtos/course.dto';
+import { RequestWithUser } from '@/interfaces/auth.interface';
+import { Course } from '@prisma/client';
 
+@Service() // Add this decorator to register CourseController
 export class CourseController {
-  public course = Container.get(CourseService);
+  public courseService = Container.get(CourseService);
 
-  public getCourses = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public findAllCourses = async (req: RequestWithUser, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const findAllCoursesData: Course[] = await this.course.findAllCourse();
-      res.status(200).json({ data: findAllCoursesData, message: 'findAll' });
+      const courses: Course[] = await this.courseService.findAll();
+
+      res.status(200).json({ data: courses, message: 'findAll' });
+    } catch (error) {
+      next(error);
+    }
+  };
+  public findTeacherCourses = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const courses: Course[] = await this.courseService.findAllTeacherCourses(id as string);
+
+      res.status(200).json({ data: courses, message: 'findAll' });
     } catch (error) {
       next(error);
     }
   };
 
-  public getCourseById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public createCourse = async (req: RequestWithUser, res: Response, next: NextFunction): Promise<void> => {
+    const data: CreateCourseDto = req.body;
     try {
-      const courseId = Number(req.params.id);
-      const findOneCourseData: Course = await this.course.findCourseById(courseId);
-      res.status(200).json({ data: findOneCourseData, message: 'findOne' });
+      const { id } = req.user;
+      const createdCourse: Course = await this.courseService.createNewCourse(id, data);
+
+      res.status(201).send({ data: createdCourse, message: 'created' });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+      next(error);
+    }
+  };
+  public findCourseById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const findOneCourseData: Course = await this.courseService.findOne(+id);
+
+      res.status(200).send({ data: findOneCourseData, message: 'findOne' });
     } catch (error) {
       next(error);
     }
   };
-
-  public createCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public updateCourse = async (req: RequestWithUser, res: Response, next: NextFunction): Promise<void> => {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const data: UpdateCourseDto = req.body;
     try {
-      const courseData: CreateCourseDto = req.body;
-      const createCourseData: Course = await this.course.createCourse(courseData);
-
-      res.status(201).json({ data: createCourseData, message: 'created' });
+      const course: Course = await this.courseService.update(+id, userId, data);
+      res.status(200).send({ data: course, message: 'updated' });
     } catch (error) {
       next(error);
     }
   };
-
-  public upadteCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public deleteCourse = async (req: RequestWithUser, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const courseId = Number(req.params.id);
-      const courseData: UpdateCourseDto = req.body;
-      const updateCourseData: Course = await this.course.updateCourse(courseId, courseData);
+      const { id } = req.params;
+      const userId = req.user.id;
+      const findOneCourseData: Course = await this.courseService.delete(+id, userId);
 
-      res.status(200).json({ data: updateCourseData, message: 'updated' });
+      res.status(200).send({ data: findOneCourseData, message: 'delete One' });
     } catch (error) {
       next(error);
     }
   };
-
-  public deleteCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const courseId = Number(req.params.id);
-      const deleteCourseData: Course = await this.course.deleteCourse(courseId);
-
-      res.status(200).json({ data: deleteCourseData, message: 'deleted' });
-    } catch (error) {
-      next(error);
-    }
-  };
+  // ... Other methods as defined
 }
