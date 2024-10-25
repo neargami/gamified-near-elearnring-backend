@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { ICoursewithoutUserId } from '@/interfaces/course.interface';
-import { IsEnum, IsOptional, IsString, IsUUID, Max, MaxLength } from 'class-validator';
+import { IsEmpty, IsEnum, IsOptional, IsString, IsUUID, Max, MaxLength } from 'class-validator';
 
 export enum Status {
   DRAFT = 'DRAFT',
@@ -23,6 +23,8 @@ export class CreateCourseDto {
   @IsString()
   @MaxLength(10)
   public difficulty: string;
+ @IsEmpty()
+  public tag?: string;
 }
 
 export class UpdateCourseDto {
@@ -49,4 +51,7 @@ export class UpdateCourseDto {
   @IsString()
   @IsOptional()
   public logo?: string;
+  @IsString()
+  @MaxLength(150)
+  public tag?: string;
 }
