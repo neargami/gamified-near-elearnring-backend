@@ -1,4 +1,6 @@
-# Gamfi Near Backend
+# NearGami Backend
+
+The backend of neargami.com
 
 ## Getting started
 
@@ -20,3 +22,7 @@ npm run prisma:init
 npm run prisma:migrate
 npm run dev
 ```
+
+# License
+
+MIT
