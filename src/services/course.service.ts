@@ -22,39 +22,56 @@ export class CourseService {
     return AllCourses;
   }
   public async findAllByTag(tag: string): Promise<Course[]> {
-    const AllCourses: Course[] = await this.course.findMany({ where: { tag: tag }, include: { lecture: true, teacher: true } });
-    return AllCourses;
-  }
-  public async findAllByTextSearch(phras: string): Promise<Course[]> {
+    const currentStatus = Status.APPROVED;
     const AllCourses: Course[] = await this.course.findMany({
       where: {
-        OR: [
-         {name:phras},{title:phras},{tag:phras}
-       ],   
-       
-      }, include: { lecture: true, teacher: true }
+        AND: [{ publish_status: currentStatus }, { tag: tag }],
+      },
+      include: { lecture: true, teacher: true },
     });
     return AllCourses;
   }
-  public async findAllBySubTextSearch(phrase: string): Promise<Course[]> {
-    const allCourses: Course[] = await this.course.findMany({
+  public async findAllByTextSearch(phras: string): Promise<Course[]> {
+    const currentStatus = Status.APPROVED;
+    const AllCourses: Course[] = await this.course.findMany({
       where: {
-        OR: [
-          { name: { contains: phrase, mode: 'insensitive' } },
-          { title: { contains: phrase, mode: 'insensitive' } },
-          { tag: { contains: phrase, mode: 'insensitive' } }
+        AND: [
+          { publish_status: currentStatus }, // Only include courses with 'APPROVED' status
+          {
+            OR: [{ title: { equals: phras } }, { name: { equals: phras } }, { tag: phras }],
+          },
         ],
       },
       include: { lecture: true, teacher: true },
     });
-    return allCourses;
+    return AllCourses;
   }
-  
+
+  public async findAllBySubTextSearch(phrase: string): Promise<Course[]> {
+    const currentStatus = Status.APPROVED;
+    const AllCourses: Course[] = await this.course.findMany({
+      where: {
+        AND: [
+          { publish_status: currentStatus }, // Only include courses with 'APPROVED' status
+          {
+            OR: [
+              { name: { contains: phrase, mode: 'insensitive' } },
+              { title: { contains: phrase, mode: 'insensitive' } },
+              { tag: { contains: phrase, mode: 'insensitive' } },
+            ],
+          },
+        ],
+      },
+      include: { lecture: true, teacher: true },
+    });
+    return AllCourses;
+  }
+
   public async findAllCoursesByStatus(id: Status): Promise<Course[]> {
     const AllCourses: Course[] = await this.course.findMany({
       where: { publish_status: id },
-    
-      include: {CourseStatusLog:{select:{changeStatusReson:true}}, lecture: true, teacher: true,  },
+
+      include: { CourseStatusLog: { select: { changeStatusReson: true } }, lecture: true, teacher: true },
     });
     return AllCourses;
   }
@@ -84,13 +101,13 @@ export class CourseService {
       data,
     });
   }
-  async updateStatus(id: number, isAdmin: boolean, publish_status: Status,publish_status_reson:string): Promise<Course> {
+  async updateStatus(id: number, isAdmin: boolean, publish_status: Status, publish_status_reson: string): Promise<Course> {
     const course = await this.course.findUnique({ where: { id } });
     if (!course) {
       throw new HttpException(404, 'Course not found');
     }
-    
-    if (isAdmin ==false) {
+
+    if (isAdmin == false) {
       throw new HttpException(403, 'this user is not admin to update status');
     }
     const changstatusdate = new Date();
@@ -99,22 +116,21 @@ export class CourseService {
     // for (let i = 0; i < coursestatuslogs.length;i++){
     //   if (coursestatuslogs[i].changeStatusDate > maxdatestatuslog) {
     //     maxdatestatuslog = coursestatuslogs[i].changeStatusDate;
-      // }
+    // }
 
-   // }
-    const statuslog=await this.coursestatuslog.create({
+    // }
+    const statuslog = await this.coursestatuslog.create({
       data: {
         changeStatusReson: publish_status_reson,
         last_publish_status: course.publish_status,
         current_publish_status: publish_status,
         changeStatusDate: changstatusdate,
-        course_id:course.id,
-      }
-  
+        course_id: course.id,
+      },
     });
     return this.course.update({
       where: { id },
-      data: {publish_status:publish_status,},
+      data: { publish_status: publish_status },
     });
   }
 
@@ -129,3 +145,4 @@ export class CourseService {
     return this.course.delete({ where: { id } });
   }
 }
+  

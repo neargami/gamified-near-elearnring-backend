@@ -17,6 +17,37 @@ export class UserController {
       next(error);
     }
   };
+
+  public claimNgcs = async (req: RequestWithUser, res: Response, next: NextFunction): Promise<void> => {
+    const user = req.user;
+    const { ngcs } = req.body;
+    try {
+      const claim = await this.user.claimNgcs(user, ngcs);
+      res.status(201).json({ data: claim, message: 'created' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getNgcs = async (req: RequestWithUser, res: Response, next: NextFunction): Promise<void> => {
+    const { id } = req.user;
+    try {
+      const ngcs = await this.user.getNgcs(id);
+      res.status(200).json({ data: ngcs, message: 'found' });
+    } catch (error) {
+      next(error);
+    }
+  };
+  public getTopPoints = async (req: RequestWithUser, res: Response, next: NextFunction): Promise<void> => {
+    const { id } = req.user;
+    try {
+      const topPoints = await this.user.getTopPoints(id);
+      res.status(200).json({ data: topPoints, message: 'found' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public findOneUserById = async (req: Request, res: Response): Promise<void> => {
     const id: string = req.params.id;
     try {
@@ -89,11 +120,11 @@ export class UserController {
   };
   public makeUserAddmin = async (req: RequestWithUser, res: Response): Promise<void> => {
     const id: string = req.params.id;
-   const isAddmin: boolean = req.body.isAddmin;
-   const user = req.user;
-    if (user.id !== id) {
-      res.status(401).json({ message: 'Unauthorized' });
-    }
+    // const isAddmin: boolean = req.body.isAddmin;
+    // const user = req.user;
+    // if (user.id !== id) {
+    //   res.status(401).json({ message: 'Unauthorized' });
+    // }
     try {
       const user = await this.user.userToAddmin(id);
       res.status(200).json(user);
@@ -129,6 +160,16 @@ export class UserController {
     try {
       const user = await this.user.getUserGame(id);
       res.status(200).json({ data: user, message: 'found' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public leaderBoard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { page } = req.query;
+      const users = await this.user.leaderBoard(+page || 1);
+      res.status(200).json({ data: users, message: 'found' });
     } catch (error) {
       next(error);
     }

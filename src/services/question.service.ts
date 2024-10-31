@@ -1,21 +1,24 @@
-import { PrismaClient, Question } from '@prisma/client';
+import { Question } from '@prisma/client';
 import { CreateQuestionDto, UpdateQuestionDto } from '../dtos/question.dto';
 import Container, { Service } from 'typedi';
 import { LectureService } from './lecture.service';
 import { HttpException } from '@/exceptions/HttpException';
+import { PrismaService } from './prisma.service';
 
 @Service()
 export class QuestionService {
-  public prisma = new PrismaClient();
-  public lecture = Container.get(LectureService);
+  private prismaService = Container.get(PrismaService);
+  private prisma = this.prismaService.prisma;
+  private lecture = Container.get(LectureService);
   async create(course_id: number, lecture_id: number, userId: string, createQuestionDto: CreateQuestionDto): Promise<Question> {
     const lecture = await this.lecture.findOne(lecture_id, course_id);
     if (lecture.course.teacher_user_id !== userId) {
       throw new HttpException(403, 'Forbidden');
     }
     const { options, ...data } = createQuestionDto;
+    const questions = await this.prisma.question.findMany({ where: { lecture_id } });
     return this.prisma.question.create({
-      data: { ...data, sequence: Math.floor(Math.random() * 1000), lecture_id, answer: { createMany: { data: options } } },
+      data: { ...data, sequence: Math.floor(questions.length + 1), lecture_id, answer: { createMany: { data: options } } },
     });
   }
 
@@ -23,7 +26,10 @@ export class QuestionService {
     await this.lecture.findOne(lecture_id, course_id);
     return this.prisma.question.findMany({
       where: { lecture_id },
-      include: { lecture: { include: { course: { select: { logo: true } } } }, answer: { omit: { is_correct: true } } },
+      include: {
+        lecture: { include: { course: { select: { logo: true } } } },
+        answer: { omit: { is_correct: true }, include: { UserQuestionAnswer: true } },
+      },
     });
   }
 

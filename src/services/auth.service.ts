@@ -1,18 +1,20 @@
-import { Service } from 'typedi';
+import Container, { Service } from 'typedi';
 import { randomBytes } from 'crypto';
 import axios from 'axios';
 import { DataStoredInToken, TokenData } from '@/interfaces/auth.interface';
 import { SECRET_KEY } from '@/config';
 import { sign } from 'jsonwebtoken';
-import { PrismaClient, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { CreateUserDto } from '@/dtos/users.dto';
+import { PrismaService } from './prisma.service';
 
 @Service()
 export class AuthService {
-  public users = new PrismaClient().user;
+  private prismaService = Container.get(PrismaService);
+  private users = this.prismaService.user;
   public createChallenge(): { challenge: string; message: string } {
     const challenge = randomBytes(32).toString('base64');
-    const message = 'Login with near';
+    const message = 'By using our service you automatically acknowledge and agree to our Privacy Policy existed at: https://eargami.com/privacy-policyand our Legal Disclaimer existed at https://neargami.com/legal-disclaimer.';
     return { challenge, message };
   }
   public async createUser({ accountId, publicKey, signature, challenge, message }) {

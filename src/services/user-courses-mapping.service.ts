@@ -1,12 +1,14 @@
-import { PrismaClient, UserCoursesMapping } from '@prisma/client';
+import { UserCoursesMapping } from '@prisma/client';
 import Container, { Service } from 'typedi';
 import { CourseService } from './course.service';
 import { HttpException } from '@/exceptions/HttpException';
+import { PrismaService } from './prisma.service';
 
 @Service()
 export class UserCoursesMappingService {
-  public prisma = new PrismaClient();
-  public course = Container.get(CourseService);
+  private prismaService = Container.get(PrismaService);
+  private prisma = this.prismaService.prisma;
+  private course = Container.get(CourseService);
   async register(user_id: string, course_id: number): Promise<UserCoursesMapping> {
     await this.course.findOne(course_id);
     return this.prisma.userCoursesMapping.create({ data: { user_id, course_id }, include: { course: true } });
@@ -27,15 +29,15 @@ export class UserCoursesMappingService {
       include: { user: { include: { userLecture: true } }, course: { include: { teacher: true, lecture: { include: { question: true } } } } },
     });
     const result = userCourses.map(courseMapping => {
-      const startedLecturesCount = courseMapping.user.userLecture.filter(lecture => lecture.start_at !== null && lecture.end_at === null).length;
-      const endedLecturesCount = courseMapping.user.userLecture.filter(lecture => lecture.end_at !== null).length;
+      const endedLecturesCount = courseMapping.user.userLecture.filter(
+        lecture => lecture.end_at !== null && lecture.course_id === courseMapping.course_id,
+      ).length;
       const questionCounts = courseMapping.course.lecture.reduce((total, lecture) => {
         return total + lecture.question.length;
       }, 0);
 
       return {
         ...courseMapping,
-        startedLecturesCount,
         endedLecturesCount,
         totalPoints: questionCounts * 10,
       };
