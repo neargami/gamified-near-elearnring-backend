@@ -4,3 +4,5 @@ dist
 .vscode
 src/logs
 logs
+.history
+*error.log
